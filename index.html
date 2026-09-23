@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Globe Star Distribution - Cash & Expense Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+
+        /* High-Visibility Cyan Calendar Icon Accent Fix */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.3) sepia(100%) saturate(800%) hue-rotate(170deg);
+            cursor: pointer;
+            opacity: 0.95;
+            transition: all 0.2s ease;
+        }
+
+        input[type="date"]::-webkit-calendar-picker-indicator:hover {
+            transform: scale(1.15);
+            filter: invert(0.2) sepia(100%) saturate(1200%) hue-rotate(170deg);
+        }
+
+        .glass-panel {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .glass-input {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            color: #0f172a;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-input:focus {
+            background: #ffffff;
+            border-color: #6366f1;
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.2);
+            outline: none;
+        }
+
+        .btn-gradient {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            transition: all 0.3s ease;
+        }
+
+        .btn-gradient:hover {
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.35);
+            transform: translateY(-1px);
+        }
+
+        .card-stat-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .card-stat-hover:hover {
+            transform: translateY(-2px);
+            border-color: #c7d2fe;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+        }
+
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; color: black !important; padding: 0 !important; }
+            .print-only { display: block !important; }
+            .page-break { page-break-inside: avoid; }
+            .glass-panel, .glass-input { background: none !important; border: none !important; color: black !important; box-shadow: none !important; }
+        }
+        .print-only { display: none; }
+        @media print {
+            .print-only { display: block !important; }
+        }
+    </style>
+</head>
+<body class="antialiased min-h-screen selection:bg-indigo-500 selection:text-white" onload="checkAuth()">
+
+    <!-- DYNAMIC DATALIST FOR PARTICULAR OPTIONS -->
+    <datalist id="particularsList"></datalist>
+
+    <!-- LOGIN OVERLAY -->
+    <div id="loginScreen" class="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="glass-panel rounded-3xl shadow-2xl max-w-md w-full p-8 border border-slate-200 relative overflow-hidden bg-white">
+            <div class="text-center mb-8 relative">
+                <div class="w-20 h-20 bg-gradient-to-tr from-indigo-600 to-purple-600 text-white rounded-2xl flex items-center justify-center text-4xl mx-auto mb-4 shadow-lg shadow-indigo-500/20">
+                    <i class="fa-solid fa-globe"></i>
+                </div>
+                <h2 class="text-2xl font-black text-slate-900 tracking-wider">GLOBE STAR</h2>
+                <p class="text-xs font-bold text-indigo-600 uppercase tracking-widest mt-1">Cash & Expense Management System</p>
+                <p class="text-xs text-slate-500 mt-2 font-medium">Enter credentials to access financial dashboard</p>
+            </div>
+            
+            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4 relative">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">Username</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-user absolute left-3.5 top-3.5 text-indigo-500 text-sm"></i>
+                        <input type="text" id="loginUser" required placeholder="Enter username" class="w-full pl-10 pr-3 py-2.5 text-sm glass-input rounded-xl outline-none">
+                    </div>
+                </div>
+                <div>
+                    <div class="flex justify-between items-center mb-1.5">
+                        <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider">Password</label>
+                        <button type="button" onclick="showForgotPasswordModal()" class="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 transition">Forgot Password?</button>
+                    </div>
+                    <div class="relative">
+                        <i class="fa-solid fa-lock absolute left-3.5 top-3.5 text-indigo-500 text-sm"></i>
+                        <input type="password" id="loginPass" required placeholder="••••••••" class="w-full pl-10 pr-3 py-2.5 text-sm glass-input rounded-xl outline-none">
+                    </div>
+                </div>
+                <p id="loginError" class="text-xs font-bold text-rose-600 hidden flex items-center gap-1.5"><i class="fa-solid fa-circle-exclamation"></i> Invalid Username or Password!</p>
+                <button type="submit" class="w-full py-3.5 btn-gradient text-white font-bold text-sm rounded-xl shadow-md transition duration-200 flex items-center justify-center gap-2 mt-2">
+                    <i class="fa-solid fa-right-to-bracket"></i> Login to Dashboard
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- FORGOT PASSWORD MODAL -->
+    <div id="forgotPasswordModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-panel rounded-2xl shadow-2xl max-w-sm w-full p-6 border border-slate-200 text-center bg-white">
+            <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center text-xl mx-auto mb-3 border border-amber-200">
+                <i class="fa-solid fa-key"></i>
+            </div>
+            <h3 class="text-base font-bold text-slate-900 mb-2">Password Reset Guidance</h3>
+            <p class="text-xs text-slate-600 mb-5 leading-relaxed">
+                Security ke tehat, password reset karne ke liye System Admin se rabta karein taake woh "Manage Users" se aap ka password check ya update kar sakein.
+            </p>
+            <button onclick="closeForgotPasswordModal()" class="w-full py-2.5 btn-gradient text-white font-bold text-xs rounded-xl shadow-md transition">
+                Got It
+            </button>
+        </div>
+    </div>
+
+    <!-- MANAGE DROPDOWN CATEGORIES MODAL (NEW FEATURE) -->
+    <div id="categoryModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
+        <div class="glass-panel rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-200 bg-white">
+            <div class="flex justify-between items-center mb-4 border-b border-slate-200 pb-3">
+                <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-indigo-600"></i> Manage Dropdown Categories
+                </h3>
+                <button onclick="closeCategoryModal()" class="text-slate-400 hover:text-slate-700 transition">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Add Category Form -->
+            <form id="addCategoryForm" onsubmit="handleAddCategory(event)" class="flex gap-2 mb-4">
+                <input type="text" id="newCategoryInput" required placeholder="Add new description option..." class="w-full glass-input rounded-xl p-2.5 text-xs outline-none">
+                <button type="submit" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition shadow-sm whitespace-nowrap">
+                    + Add Option
+                </button>
+            </form>
+
+            <h4 class="text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Available Dropdown Preset Options</h4>
+            <div class="max-h-60 overflow-y-auto border border-slate-200 rounded-xl bg-slate-50 p-2 space-y-1.5" id="categoryListContainer">
+                <!-- Dynamic Category Items Rendered Here -->
+            </div>
+
+            <div class="mt-5 flex justify-end">
+                <button onclick="closeCategoryModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl border border-slate-300 transition">
+                    Done
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- USER MANAGEMENT MODAL (ADMIN ONLY) -->
+    <div id="userModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
+        <div class="glass-panel rounded-2xl shadow-2xl max-w-lg w-full p-6 border border-slate-200 bg-white">
+            <div class="flex justify-between items-center mb-6 border-b border-slate-200 pb-3">
+                <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <i class="fa-solid fa-users-gear text-indigo-600"></i> Manage Users & Passwords
+                </h3>
+                <button onclick="closeUserModal()" class="text-slate-400 hover:text-slate-700 transition">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <form id="addUserForm" onsubmit="handleCreateUser(event)" class="space-y-3 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <h4 class="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-2">Create New User Account</h4>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">New Username</label>
+                        <input type="text" id="newUsername" required placeholder="e.g. accounts_user" class="w-full glass-input rounded-lg p-2 text-xs outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Password</label>
+                        <input type="password" id="newUserPass" required placeholder="••••••••" class="w-full glass-input rounded-lg p-2 text-xs outline-none">
+                    </div>
+                </div>
+                <button type="submit" class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg transition shadow-sm">
+                    + Add New User
+                </button>
+            </form>
+
+            <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Existing System Users</h4>
+            <div class="max-h-48 overflow-y-auto border border-slate-200 rounded-xl bg-white">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-100 text-slate-600 font-bold uppercase border-b border-slate-200">
+                        <tr>
+                            <th class="p-2.5">Username</th>
+                            <th class="p-2.5">Password</th>
+                            <th class="p-2.5">Role</th>
+                            <th class="p-2.5 text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userTableBody" class="divide-y divide-slate-200">
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="mt-6 flex justify-end">
+                <button onclick="closeUserModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg border border-slate-300 transition">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- EDIT TRANSACTION MODAL -->
+    <div id="editModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
+        <div class="glass-panel rounded-2xl shadow-2xl max-w-lg w-full p-6 border border-slate-200 bg-white">
+            <div class="flex justify-between items-center mb-4 border-b border-slate-200 pb-3">
+                <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <i class="fa-solid fa-pen-to-square text-indigo-600"></i> Edit Transaction
+                </h3>
+                <button onclick="closeEditModal()" class="text-slate-400 hover:text-slate-700 transition">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            <form id="editForm" onsubmit="saveEditedTransaction(event)" class="space-y-4">
+                <input type="hidden" id="editTxId">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Type</label>
+                        <select id="editTxType" class="w-full glass-input rounded-lg p-2.5 text-xs outline-none">
+                            <option value="Expense">Cash Out (Expense)</option>
+                            <option value="Received">Cash In (Received)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Date</label>
+                        <input type="date" id="editTxDate" required class="w-full glass-input rounded-lg p-2.5 text-xs outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Particulars / Description</label>
+                    <input type="text" id="editTxParticulars" list="particularsList" required placeholder="Select or type description..." class="w-full glass-input rounded-lg p-2.5 text-xs outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Amount (PKR)</label>
+                    <input type="number" id="editTxAmount" min="1" step="any" required class="w-full glass-input rounded-lg p-2.5 text-xs outline-none">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeEditModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg border border-slate-300 transition">Cancel</button>
+                    <button type="submit" class="px-5 py-2 btn-gradient text-white font-bold text-xs rounded-lg transition shadow-md">Update Transaction</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MAIN APP WRAPPER -->
+    <div id="appContent" class="hidden">
+        
+        <!-- Top Navigation Bar -->
+        <header class="glass-panel shadow-sm no-print border-b border-slate-200 sticky top-0 z-40 bg-white">
+            <div class="max-w-7xl mx-auto px-4 py-3.5 flex justify-between items-center">
+                <div class="flex items-center space-x-3.5">
+                    <div class="w-11 h-11 bg-gradient-to-tr from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center text-white text-xl shadow-md shadow-indigo-500/20">
+                        <i class="fa-solid fa-globe"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-base font-black tracking-wider text-slate-900 leading-none">GLOBE STAR <span class="text-indigo-600 font-semibold text-xs tracking-normal">DISTRIBUTION</span></h1>
+                        <span id="currentMonthDisplay" class="text-[10px] text-teal-600 font-bold uppercase tracking-wider block mt-1"></span>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button id="btnManageUsers" onclick="openUserModal()" class="text-xs font-semibold text-indigo-700 hover:text-indigo-900 bg-indigo-50 border border-indigo-200 hover:border-indigo-300 px-3 py-1.5 rounded-xl transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-users"></i> Manage Users
+                    </button>
+                    <div class="flex items-center space-x-2 bg-slate-100 px-3.5 py-1.5 rounded-xl border border-slate-200">
+                        <i class="fa-solid fa-user-gear text-indigo-600"></i>
+                        <span id="activeUserLabel" class="text-xs font-semibold text-slate-700">Admin</span>
+                    </div>
+                    <button onclick="handleLogout()" class="text-xs font-semibold text-rose-600 hover:text-rose-800 bg-rose-50 border border-rose-200 hover:border-rose-300 px-3 py-1.5 rounded-xl transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-power-off"></i> Logout
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+
+            <!-- PRINT / PDF EXECUTIVE HEADER -->
+            <div class="print-only mb-6 border-b-2 border-slate-900 pb-4">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-slate-900 text-white rounded-xl flex items-center justify-center text-2xl font-bold">
+                            <i class="fa-solid fa-globe"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl font-black text-slate-900 uppercase tracking-wider">GLOBE STAR DISTRIBUTION</h1>
+                            <p class="text-xs text-slate-600 font-bold uppercase tracking-widest">Cash In & Cash Out Statement</p>
+                            <p id="printRangeLabel" class="text-xs font-semibold text-indigo-600 mt-1"></p>
+                        </div>
+                    </div>
+                    <div class="text-right text-xs text-slate-600 leading-relaxed">
+                        <p><strong>Generated On:</strong> <span id="printDate"></span></p>
+                        <p><strong>Prepared By:</strong> <span id="printUser"></span></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Enhanced Stat Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 no-print">
+                <div id="balanceCard" class="glass-panel p-5 rounded-2xl border flex items-center justify-between card-stat-hover relative overflow-hidden bg-white">
+                    <div class="relative z-10">
+                        <p id="balanceLabel" class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Carried Balance / Receivable</p>
+                        <h3 id="statBalance" class="text-2xl font-black mt-1 text-slate-900">PKR 0</h3>
+                    </div>
+                    <div id="balanceIconBox" class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center text-xl border border-indigo-100 relative z-10">
+                        <i class="fa-solid fa-scale-balanced"></i>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-5 rounded-2xl border flex items-center justify-between card-stat-hover relative overflow-hidden bg-white">
+                    <div class="relative z-10">
+                        <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Cash In (Received)</p>
+                        <h3 id="statReceived" class="text-2xl font-black mt-1 text-emerald-600">PKR 0</h3>
+                    </div>
+                    <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center text-xl border border-emerald-100 relative z-10">
+                        <i class="fa-solid fa-arrow-down-left"></i>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-5 rounded-2xl border flex items-center justify-between card-stat-hover relative overflow-hidden bg-white">
+                    <div class="relative z-10">
+                        <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Cash Out (Expense)</p>
+                        <h3 id="statExpense" class="text-2xl font-black mt-1 text-rose-600">PKR 0</h3>
+                    </div>
+                    <div class="w-12 h-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center text-xl border border-rose-100 relative z-10">
+                        <i class="fa-solid fa-arrow-up-right"></i>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-5 rounded-2xl border flex items-center justify-between card-stat-hover relative overflow-hidden bg-white">
+                    <div class="relative z-10">
+                        <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Entries (Filtered)</p>
+                        <h3 id="statCount" class="text-2xl font-black mt-1 text-teal-600">0</h3>
+                    </div>
+                    <div class="w-12 h-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center text-xl border border-teal-100 relative z-10">
+                        <i class="fa-solid fa-receipt"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Transaction Form -->
+            <div class="glass-panel rounded-2xl border p-6 no-print bg-white">
+                <h2 class="text-xs font-bold uppercase tracking-wider text-indigo-600 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-circle-plus"></i> Add New Transaction Record
+                </h2>
+                <form id="transactionForm" onsubmit="addTransaction(event)" class="grid grid-cols-1 md:grid-cols-6 gap-4">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1.5 tracking-wider">Type</label>
+                        <select id="txType" class="w-full glass-input rounded-xl p-2.5 text-sm outline-none">
+                            <option value="Expense">Cash Out (Expense)</option>
+                            <option value="Received">Cash In (Received)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1.5 tracking-wider">Date</label>
+                        <input type="date" id="txDate" required class="w-full glass-input rounded-xl p-2.5 text-sm outline-none">
+                    </div>
+                    
+                    <!-- PARTICULARS FIELD WITH INTEGRATED CATEGORY MANAGER -->
+                    <div class="md:col-span-3">
+                        <div class="flex justify-between items-center mb-1.5">
+                            <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider">Particulars / Description</label>
+                            <button type="button" onclick="openCategoryModal()" class="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 transition flex items-center gap-1">
+                                <i class="fa-solid fa-gear text-xs"></i> Manage Dropdown
+                            </button>
+                        </div>
+                        <div class="relative flex items-center">
+                            <input type="text" id="txParticulars" list="particularsList" placeholder="Select or type description..." required class="w-full glass-input rounded-xl p-2.5 text-sm outline-none pr-10">
+                            <button type="button" onclick="openCategoryModal()" title="Manage List Options" class="absolute right-2.5 text-slate-400 hover:text-indigo-600 p-1 transition">
+                                <i class="fa-solid fa-list-ul text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1.5 tracking-wider">Amount (PKR)</label>
+                        <input type="number" id="txAmount" placeholder="0" min="1" step="any" required class="w-full glass-input rounded-xl p-2.5 text-sm outline-none">
+                    </div>
+                    <div class="md:col-span-6 flex justify-end gap-3 pt-2 border-t border-slate-100 mt-1">
+                        <button type="reset" onclick="resetFormDate()" class="px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition border border-slate-200">Clear</button>
+                        <button type="submit" class="px-6 py-2.5 text-xs font-bold uppercase tracking-wider text-white btn-gradient rounded-xl shadow-md transition flex items-center gap-2">
+                            <i class="fa-solid fa-floppy-disk"></i> Save Transaction
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Filter & Search Section -->
+            <div class="glass-panel rounded-2xl border p-4 no-print space-y-3 bg-white">
+                <div class="flex flex-wrap gap-3 items-center justify-between border-b border-slate-100 pb-3">
+                    <div class="flex flex-wrap gap-3 items-center w-full md:w-auto">
+                        <div class="relative w-full md:w-60">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
+                            <input type="text" id="searchFilter" oninput="renderData()" placeholder="Search particulars..." class="glass-input rounded-xl pl-9 pr-3 py-2 text-sm w-full outline-none">
+                        </div>
+                        <select id="typeFilter" onchange="renderData()" class="glass-input rounded-xl px-3 py-2 text-sm outline-none">
+                            <option value="All">All Transactions</option>
+                            <option value="Received">Cash In Only</option>
+                            <option value="Expense">Cash Out Only</option>
+                        </select>
+                        <button onclick="resetDataToExcel()" class="px-3 py-2 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-rotate-left"></i> Reload Excel Data
+                        </button>
+                    </div>
+                    
+                    <div class="flex gap-2 w-full md:w-auto justify-end">
+                        <button onclick="deleteSelected()" id="btnDeleteSelected" class="hidden px-4 py-2 text-xs font-bold uppercase tracking-wider text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition flex items-center gap-2 shadow-sm">
+                            <i class="fa-solid fa-trash-can"></i> Delete Selected (<span id="selectedCount">0</span>)
+                        </button>
+                        <button onclick="printProfessionalReport()" class="px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-xl transition flex items-center gap-2 shadow-sm">
+                            <i class="fa-solid fa-file-pdf text-rose-600"></i> Export / Print PDF Report
+                        </button>
+                    </div>
+                </div>
+
+                <!-- DATE RANGE SELECTION FOR REPORTS -->
+                <div class="flex flex-wrap items-center gap-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs">
+                    <span class="font-bold text-slate-700 flex items-center gap-1.5">
+                        <i class="fa-solid fa-calendar-days text-indigo-600"></i> Date Range Filter:
+                    </span>
+                    <div class="flex items-center gap-1.5">
+                        <label class="font-semibold text-slate-500">From:</label>
+                        <input type="date" id="reportStartDate" onchange="renderData()" class="glass-input rounded-lg px-2.5 py-1 text-xs outline-none">
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <label class="font-semibold text-slate-500">To:</label>
+                        <input type="date" id="reportEndDate" onchange="renderData()" class="glass-input rounded-lg px-2.5 py-1 text-xs outline-none">
+                    </div>
+                    <button onclick="clearDateRange()" class="px-3 py-1 text-xs font-semibold text-slate-600 bg-white border border-slate-300 hover:bg-slate-100 rounded-lg transition">
+                        Clear Dates
+                    </button>
+                    <span id="dateFilterStatus" class="text-slate-500 font-medium ml-auto">Showing all dates</span>
+                </div>
+            </div>
+
+            <!-- Transactions Table -->
+            <div class="glass-panel rounded-2xl border overflow-hidden bg-white">
+                <div class="p-4 border-b border-slate-200 flex justify-between items-center no-print bg-slate-50">
+                    <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-indigo-600"></i> Cash Statement
+                    </h3>
+                    <span id="recordCountText" class="text-xs text-slate-500 font-medium">Showing 0 entries</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-600 font-bold uppercase text-[11px] tracking-wider border-b border-slate-200">
+                                <th class="p-3.5 text-center no-print" style="width: 40px;">
+                                    <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" class="w-4 h-4 accent-indigo-600 rounded bg-white border-slate-300">
+                                </th>
+                                <th class="p-3.5 border-b border-slate-200">Date</th>
+                                <th class="p-3.5 border-b border-slate-200">Particulars / Description</th>
+                                <th class="p-3.5 border-b border-slate-200 text-right">Cash In (PKR)</th>
+                                <th class="p-3.5 border-b border-slate-200 text-right">Cash Out (PKR)</th>
+                                <th class="p-3.5 border-b border-slate-200 text-right">Running Balance (PKR)</th>
+                                <th class="p-3.5 border-b border-slate-200 text-center no-print">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactionTableBody" class="divide-y divide-slate-200 text-slate-800">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- EXECUTIVE SIGNATURE FOOTER FOR PDF -->
+            <div class="print-only pt-12 page-break">
+                <div class="flex justify-between items-end px-8 text-xs text-slate-600">
+                    <div class="text-center">
+                        <div class="w-40 border-b border-slate-400 mb-1"></div>
+                        <p class="font-bold">Prepared By</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-40 border-b border-slate-400 mb-1"></div>
+                        <p class="font-bold">Accounts Manager</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-40 border-b border-slate-400 mb-1"></div>
+                        <p class="font-bold">Authorized Director</p>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        const defaultUsers = [{ username: "admin", pass: "1234", role: "Admin" }];
+        let appUsers = JSON.parse(localStorage.getItem('globe_star_users')) || defaultUsers;
+
+        const defaultCategories = [
+            "Received Amount", "Cash Received", "Received From Junaid", 
+            "Received From Ali Hassan", "Abdul Hyee", "Zunair Pay", 
+            "Office Supplies", "Internet Bill", "Milk + Guest Refreshment", 
+            "Amazon Tool Expense", "Basheeran Bibi", "Riaz Wife"
+        ];
+        let categories = JSON.parse(localStorage.getItem('globe_star_categories')) || defaultCategories;
+
+        const defaultExcelEntries = [
+            {"id": 1, "date": "07/01/2026", "particulars": "Arslan Sb to Abdul Hyee Bones", "type": "Expense", "amount": 15000.0},
+            {"id": 2, "date": "07/01/2026", "particulars": "Milk + drinks guest", "type": "Expense", "amount": 900.0},
+            {"id": 3, "date": "07/02/2026", "particulars": "Milk", "type": "Expense", "amount": 600.0},
+            {"id": 4, "date": "07/02/2026", "particulars": "amazon tool Junaid", "type": "Expense", "amount": 6200.0},
+            {"id": 5, "date": "07/03/2026", "particulars": "Basheeran bibi", "type": "Expense", "amount": 10000.0},
+            {"id": 10, "date": "07/06/2026", "particulars": "Received Amount From Ali Hassan", "type": "Received", "amount": 241350.0},
+            {"id": 35, "date": "18/07/2026", "particulars": "Received Junaid sb", "type": "Received", "amount": 100000.0},
+            {"id": 126, "date": "14/09/2026", "particulars": "Received Junaid", "type": "Received", "amount": 170000.0},
+            {"id": 133, "date": "18/09/2026", "particulars": "Zunair Pay", "type": "Expense", "amount": 176000.0},
+            {"id": 134, "date": "18/09/2026", "particulars": "junaid", "type": "Expense", "amount": 405000.0},
+            {"id": 135, "date": "18/09/2026", "particulars": "Abdul Hyee", "type": "Expense", "amount": 294000.0},
+            {"id": 138, "date": "18/09/2026", "particulars": "recived", "type": "Received", "amount": 687000.0},
+            {"id": 139, "date": "19/09/2026", "particulars": "recived Junaid", "type": "Received", "amount": 106000.0},
+            {"id": 140, "date": "21/09/2026", "particulars": "Riaz Wife", "type": "Expense", "amount": 10000.0},
+            {"id": 141, "date": "21/09/2026", "particulars": "Cash Received", "type": "Received", "amount": 50000.0}
+        ];
+
+        let transactions = JSON.parse(localStorage.getItem('globe_star_txs')) || defaultExcelEntries;
+        let selectedTxIds = new Set();
+        let currentUser = null;
+
+        function checkAuth() {
+            const loggedInUser = sessionStorage.getItem('globe_star_session');
+            if (loggedInUser) {
+                currentUser = JSON.parse(loggedInUser);
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('appContent').classList.remove('hidden');
+                document.getElementById('activeUserLabel').innerText = `${currentUser.username} (${currentUser.role})`;
+                
+                if (currentUser.role !== 'Admin') {
+                    document.getElementById('btnManageUsers').classList.add('hidden');
+                } else {
+                    document.getElementById('btnManageUsers').classList.remove('hidden');
+                }
+
+                setCurrentDate();
+                renderData();
+            } else {
+                document.getElementById('loginScreen').classList.remove('hidden');
+                document.getElementById('appContent').classList.add('hidden');
+            }
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const u = document.getElementById('loginUser').value.trim();
+            const p = document.getElementById('loginPass').value.trim();
+            
+            const found = appUsers.find(user => user.username.toLowerCase() === u.toLowerCase() && user.pass === p);
+            
+            if (found) {
+                sessionStorage.setItem('globe_star_session', JSON.stringify(found));
+                document.getElementById('loginError').classList.add('hidden');
+                checkAuth();
+            } else {
+                document.getElementById('loginError').classList.remove('hidden');
+            }
+        }
+
+        function handleLogout() {
+            sessionStorage.removeItem('globe_star_session');
+            checkAuth();
+        }
+
+        function showForgotPasswordModal() {
+            document.getElementById('forgotPasswordModal').classList.remove('hidden');
+        }
+
+        function closeForgotPasswordModal() {
+            document.getElementById('forgotPasswordModal').classList.add('hidden');
+        }
+
+        /* CATEGORY / DROPDOWN MANAGER FUNCTIONS */
+        function openCategoryModal() {
+            renderCategoryList();
+            document.getElementById('categoryModal').classList.remove('hidden');
+        }
+
+        function closeCategoryModal() {
+            document.getElementById('categoryModal').classList.add('hidden');
+        }
+
+        function renderCategoryList() {
+            const container = document.getElementById('categoryListContainer');
+            container.innerHTML = '';
+
+            if (categories.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-3">No preset dropdown options available.</p>`;
+                return;
+            }
+
+            categories.forEach((cat, index) => {
+                const item = document.createElement('div');
+                item.className = "flex justify-between items-center bg-white p-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-800";
+                item.innerHTML = `
+                    <span>${escapeHtml(cat)}</span>
+                    <div class="flex items-center gap-1">
+                        <button onclick="editCategory(${index})" class="text-indigo-600 hover:text-indigo-800 p-1 font-bold" title="Edit Option">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                        <button onclick="deleteCategory(${index})" class="text-rose-600 hover:text-rose-800 p-1 font-bold" title="Delete Option">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function handleAddCategory(e) {
+            e.preventDefault();
+            const val = document.getElementById('newCategoryInput').value.trim();
+            if (!val) return;
+
+            if (categories.some(c => c.toLowerCase() === val.toLowerCase())) {
+                alert('This dropdown option already exists!');
+                return;
+            }
+
+            categories.push(val);
+            saveCategories();
+            document.getElementById('newCategoryInput').value = '';
+            renderCategoryList();
+            updateParticularsDatalist();
+        }
+
+        function editCategory(index) {
+            const oldVal = categories[index];
+            const newVal = prompt("Edit Description Option:", oldVal);
+            if (newVal && newVal.trim() !== "") {
+                categories[index] = newVal.trim();
+                saveCategories();
+                renderCategoryList();
+                updateParticularsDatalist();
+            }
+        }
+
+        function deleteCategory(index) {
+            if (confirm(`Remove "${categories[index]}" from dropdown options?`)) {
+                categories.splice(index, 1);
+                saveCategories();
+                renderCategoryList();
+                updateParticularsDatalist();
+            }
+        }
+
+        function saveCategories() {
+            localStorage.setItem('globe_star_categories', JSON.stringify(categories));
+        }
+
+        function updateParticularsDatalist() {
+            const datalist = document.getElementById('particularsList');
+            if (!datalist) return;
+
+            // Merge explicit categories and past descriptions
+            const uniquePast = [...new Set(transactions.map(t => t.particulars.trim()))].filter(Boolean);
+            const combinedOptions = [...new Set([...categories, ...uniquePast])];
+
+            datalist.innerHTML = combinedOptions.map(item => `<option value="${escapeHtml(item)}">`).join('');
+        }
+
+        /* USER MANAGEMENT FUNCTIONS */
+        function openUserModal() {
+            if (!currentUser || currentUser.role !== 'Admin') return;
+            renderUserList();
+            document.getElementById('userModal').classList.remove('hidden');
+        }
+
+        function closeUserModal() {
+            document.getElementById('userModal').classList.add('hidden');
+        }
+
+        function renderUserList() {
+            const tbody = document.getElementById('userTableBody');
+            tbody.innerHTML = '';
+            
+            appUsers.forEach((u, index) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50";
+                tr.innerHTML = `
+                    <td class="p-2.5 font-bold text-slate-800">${escapeHtml(u.username)}</td>
+                    <td class="p-2.5 font-mono text-slate-600">${escapeHtml(u.pass)}</td>
+                    <td class="p-2.5"><span class="px-2 py-0.5 text-[10px] font-bold rounded-full ${u.role === 'Admin' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}">${u.role}</span></td>
+                    <td class="p-2.5 text-center">
+                        ${u.username !== 'admin' ? `
+                            <button onclick="deleteUser(${index})" class="text-rose-600 hover:text-rose-800 font-bold text-xs p-1">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        ` : '<span class="text-[10px] text-slate-400 font-medium">Default</span>'}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function handleCreateUser(e) {
+            e.preventDefault();
+            const u = document.getElementById('newUsername').value.trim();
+            const p = document.getElementById('newUserPass').value.trim();
+
+            if (!u || !p) return;
+
+            if (appUsers.some(user => user.username.toLowerCase() === u.toLowerCase())) {
+                alert('Username already exists!');
+                return;
+            }
+
+            appUsers.push({ username: u, pass: p, role: "User" });
+            localStorage.setItem('globe_star_users', JSON.stringify(appUsers));
+            document.getElementById('addUserForm').reset();
+            renderUserList();
+        }
+
+        function deleteUser(index) {
+            if (confirm("Are you sure you want to delete this user?")) {
+                appUsers.splice(index, 1);
+                localStorage.setItem('globe_star_users', JSON.stringify(appUsers));
+                renderUserList();
+            }
+        }
+
+        function setCurrentDate() {
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            document.getElementById('txDate').value = `${yyyy}-${mm}-${dd}`;
+            
+            const options = { month: 'long', year: 'numeric' };
+            document.getElementById('currentMonthDisplay').innerText = today.toLocaleDateString('en-US', options);
+        }
+
+        function resetFormDate() {
+            setTimeout(setCurrentDate, 10);
+        }
+
+        function parseDate(dateStr) {
+            if (!dateStr) return new Date(0);
+            if (dateStr.includes('/')) {
+                const parts = dateStr.split('/');
+                return new Date(parts[2], parts[1] - 1, parts[0]);
+            }
+            return new Date(dateStr);
+        }
+
+        function formatDateForDisplay(dateStr) {
+            if (!dateStr) return '';
+            if (dateStr.includes('/')) return dateStr;
+            const parts = dateStr.split('-');
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+
+        function formatDateForInput(dateStr) {
+            if (!dateStr) return '';
+            if (dateStr.includes('-')) return dateStr;
+            const parts = dateStr.split('/');
+            return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+        }
+
+        function formatCurrency(val) {
+            return new Intl.NumberFormat('en-PK', { maximumFractionDigits: 2 }).format(val);
+        }
+
+        function escapeHtml(str) {
+            return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        }
+
+        function addTransaction(e) {
+            e.preventDefault();
+            const type = document.getElementById('txType').value;
+            const rawDate = document.getElementById('txDate').value;
+            const particulars = document.getElementById('txParticulars').value.trim();
+            const amount = parseFloat(document.getElementById('txAmount').value);
+
+            if (!rawDate || !particulars || isNaN(amount) || amount <= 0) return;
+
+            const date = formatDateForDisplay(rawDate);
+            const newTx = {
+                id: Date.now(),
+                date,
+                particulars,
+                type,
+                amount
+            };
+
+            transactions.push(newTx);
+            saveTransactions();
+            document.getElementById('txParticulars').value = '';
+            document.getElementById('txAmount').value = '';
+            renderData();
+        }
+
+        function openEditModal(id) {
+            const tx = transactions.find(t => t.id === id);
+            if (!tx) return;
+
+            document.getElementById('editTxId').value = tx.id;
+            document.getElementById('editTxType').value = tx.type;
+            document.getElementById('editTxDate').value = formatDateForInput(tx.date);
+            document.getElementById('editTxParticulars').value = tx.particulars;
+            document.getElementById('editTxAmount').value = tx.amount;
+
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+        }
+
+        function saveEditedTransaction(e) {
+            e.preventDefault();
+            const id = parseInt(document.getElementById('editTxId').value);
+            const type = document.getElementById('editTxType').value;
+            const rawDate = document.getElementById('editTxDate').value;
+            const particulars = document.getElementById('editTxParticulars').value.trim();
+            const amount = parseFloat(document.getElementById('editTxAmount').value);
+
+            const txIndex = transactions.findIndex(t => t.id === id);
+            if (txIndex !== -1) {
+                transactions[txIndex] = {
+                    id,
+                    date: formatDateForDisplay(rawDate),
+                    particulars,
+                    type,
+                    amount
+                };
+                saveTransactions();
+                closeEditModal();
+                renderData();
+            }
+        }
+
+        function deleteTransaction(id) {
+            if (confirm("Are you sure you want to delete this transaction entry?")) {
+                transactions = transactions.filter(t => t.id !== id);
+                selectedTxIds.delete(id);
+                saveTransactions();
+                renderData();
+            }
+        }
+
+        function toggleSelectAll(master) {
+            const checkboxes = document.querySelectorAll('.row-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = master.checked;
+                const id = parseInt(cb.getAttribute('data-id'));
+                if (master.checked) {
+                    selectedTxIds.add(id);
+                } else {
+                    selectedTxIds.delete(id);
+                }
+            });
+            updateDeleteSelectedButton();
+        }
+
+        function toggleSelectRow(cb, id) {
+            if (cb.checked) {
+                selectedTxIds.add(id);
+            } else {
+                selectedTxIds.delete(id);
+            }
+            updateDeleteSelectedButton();
+        }
+
+        function updateDeleteSelectedButton() {
+            const btn = document.getElementById('btnDeleteSelected');
+            const countLabel = document.getElementById('selectedCount');
+            if (selectedTxIds.size > 0) {
+                btn.classList.remove('hidden');
+                countLabel.innerText = selectedTxIds.size;
+            } else {
+                btn.classList.add('hidden');
+                countLabel.innerText = 0;
+            }
+        }
+
+        function deleteSelected() {
+            if (selectedTxIds.size === 0) return;
+            if (confirm(`Are you sure you want to delete ${selectedTxIds.size} selected transaction(s)?`)) {
+                transactions = transactions.filter(t => !selectedTxIds.has(t.id));
+                selectedTxIds.clear();
+                saveTransactions();
+                document.getElementById('selectAll').checked = false;
+                updateDeleteSelectedButton();
+                renderData();
+            }
+        }
+
+        function clearDateRange() {
+            document.getElementById('reportStartDate').value = '';
+            document.getElementById('reportEndDate').value = '';
+            renderData();
+        }
+
+        function resetDataToExcel() {
+            if (confirm("Reset current transaction list back to original Excel dataset?")) {
+                transactions = [...defaultExcelEntries];
+                selectedTxIds.clear();
+                saveTransactions();
+                renderData();
+            }
+        }
+
+        function saveTransactions() {
+            localStorage.setItem('globe_star_txs', JSON.stringify(transactions));
+        }
+
+        function renderData() {
+            const searchQuery = document.getElementById('searchFilter').value.toLowerCase().trim();
+            const typeQuery = document.getElementById('typeFilter').value;
+            const startDateVal = document.getElementById('reportStartDate').value;
+            const endDateVal = document.getElementById('reportEndDate').value;
+
+            let startDate = startDateVal ? new Date(startDateVal) : null;
+            let endDate = endDateVal ? new Date(endDateVal) : null;
+            if (endDate) endDate.setHours(23, 59, 59, 999);
+
+            let statusText = "Showing all dates";
+            if (startDate && endDate) {
+                statusText = `Filtered: ${formatDateForDisplay(startDateVal)} to ${formatDateForDisplay(endDateVal)}`;
+            } else if (startDate) {
+                statusText = `Filtered: From ${formatDateForDisplay(startDateVal)}`;
+            } else if (endDate) {
+                statusText = `Filtered: Until ${formatDateForDisplay(endDateVal)}`;
+            }
+            document.getElementById('dateFilterStatus').innerText = statusText;
+
+            // Refresh Particulars Datalist Options
+            updateParticularsDatalist();
+
+            // Sort chronologically to compute running balance correctly
+            let sortedTxs = [...transactions].sort((a, b) => parseDate(a.date) - parseDate(b.date));
+
+            let runningBalance = 0;
+            let totalReceived = 0;
+            let totalExpense = 0;
+
+            const computedList = sortedTxs.map(tx => {
+                if (tx.type === 'Received') {
+                    runningBalance += tx.amount;
+                } else {
+                    runningBalance -= tx.amount;
+                }
+                return { ...tx, calculatedBalance: runningBalance };
+            });
+
+            // Apply filters
+            const filtered = computedList.filter(tx => {
+                const matchesSearch = tx.particulars.toLowerCase().includes(searchQuery);
+                const matchesType = (typeQuery === 'All') || (tx.type === typeQuery);
+                
+                const txDate = parseDate(tx.date);
+                let matchesDate = true;
+                if (startDate && txDate < startDate) matchesDate = false;
+                if (endDate && txDate > endDate) matchesDate = false;
+
+                return matchesSearch && matchesType && matchesDate;
+            });
+
+            // Compute summary totals for filtered data
+            filtered.forEach(tx => {
+                if (tx.type === 'Received') totalReceived += tx.amount;
+                if (tx.type === 'Expense') totalExpense += tx.amount;
+            });
+
+            const currentBalance = filtered.length > 0 ? filtered[filtered.length - 1].calculatedBalance : 0;
+
+            // Update Statistics Cards
+            document.getElementById('statReceived').innerText = `PKR ${formatCurrency(totalReceived)}`;
+            document.getElementById('statExpense').innerText = `PKR ${formatCurrency(totalExpense)}`;
+            document.getElementById('statCount').innerText = filtered.length;
+
+            const statBalElem = document.getElementById('statBalance');
+            const balIconBox = document.getElementById('balanceIconBox');
+            const balLabel = document.getElementById('balanceLabel');
+
+            statBalElem.innerText = `PKR ${formatCurrency(Math.abs(currentBalance))}`;
+
+            if (currentBalance < 0) {
+                balLabel.innerText = "Carried Deficit / Payable";
+                statBalElem.className = "text-2xl font-black mt-1 text-rose-600";
+                balIconBox.className = "w-12 h-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center text-xl border border-rose-100 relative z-10";
+            } else {
+                balLabel.innerText = "Carried Balance / Surplus";
+                statBalElem.className = "text-2xl font-black mt-1 text-indigo-600";
+                balIconBox.className = "w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center text-xl border border-indigo-100 relative z-10";
+            }
+
+            document.getElementById('recordCountText').innerText = `Showing ${filtered.length} of ${transactions.length} entries`;
+
+            // Render Table Rows
+            const tbody = document.getElementById('transactionTableBody');
+            tbody.innerHTML = '';
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="p-8 text-center text-slate-400 font-medium">
+                            <i class="fa-solid fa-folder-open text-3xl mb-2 block"></i>
+                            No transaction records found.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            filtered.forEach(tx => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition border-b border-slate-100 text-xs";
+
+                const isChecked = selectedTxIds.has(tx.id);
+                const cashInDisplay = tx.type === 'Received' ? `<span class="font-bold text-emerald-600">+${formatCurrency(tx.amount)}</span>` : '-';
+                const cashOutDisplay = tx.type === 'Expense' ? `<span class="font-bold text-rose-600">-${formatCurrency(tx.amount)}</span>` : '-';
+                const balanceDisplay = `<span class="font-bold ${tx.calculatedBalance >= 0 ? 'text-slate-900' : 'text-rose-600'}">${formatCurrency(tx.calculatedBalance)}</span>`;
+
+                tr.innerHTML = `
+                    <td class="p-3 text-center no-print">
+                        <input type="checkbox" data-id="${tx.id}" ${isChecked ? 'checked' : ''} onchange="toggleSelectRow(this, ${tx.id})" class="row-checkbox w-4 h-4 accent-indigo-600 rounded bg-white border-slate-300">
+                    </td>
+                    <td class="p-3 font-semibold text-slate-600 whitespace-nowrap">${escapeHtml(tx.date)}</td>
+                    <td class="p-3 font-medium text-slate-800">${escapeHtml(tx.particulars)}</td>
+                    <td class="p-3 text-right whitespace-nowrap">${cashInDisplay}</td>
+                    <td class="p-3 text-right whitespace-nowrap">${cashOutDisplay}</td>
+                    <td class="p-3 text-right whitespace-nowrap">${balanceDisplay}</td>
+                    <td class="p-3 text-center whitespace-nowrap no-print">
+                        <div class="flex items-center justify-center gap-1.5">
+                            <button onclick="openEditModal(${tx.id})" class="p-1.5 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 rounded-lg transition" title="Edit">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button onclick="deleteTransaction(${tx.id})" class="p-1.5 text-rose-600 hover:text-rose-900 hover:bg-rose-50 rounded-lg transition" title="Delete">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function printProfessionalReport() {
+            const startDateVal = document.getElementById('reportStartDate').value;
+            const endDateVal = document.getElementById('reportEndDate').value;
+            
+            let rangeLabel = "All Historical Transactions";
+            if (startDateVal && endDateVal) {
+                rangeLabel = `Period: ${formatDateForDisplay(startDateVal)} to ${formatDateForDisplay(endDateVal)}`;
+            } else if (startDateVal) {
+                rangeLabel = `Period: From ${formatDateForDisplay(startDateVal)}`;
+            } else if (endDateVal) {
+                rangeLabel = `Period: Until ${formatDateForDisplay(endDateVal)}`;
+            }
+
+            document.getElementById('printRangeLabel').innerText = rangeLabel;
+            document.getElementById('printDate').innerText = new Date().toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            document.getElementById('printUser').innerText = currentUser ? `${currentUser.username} (${currentUser.role})` : 'System';
+
+            window.print();
+        }
+    </script>
+</body>
+</html>
